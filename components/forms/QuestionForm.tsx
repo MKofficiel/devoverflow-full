@@ -14,8 +14,19 @@ import {
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 
+import { useRef } from "react";
+import { MDXEditorMethods } from "@mdxeditor/editor";
+import dynamic from "next/dynamic";
+import z from "zod";
+import TagCard from "../cards/TagCard";
+const Editor = dynamic(() => import("@/components/editor"), {
+  // Make sure we turn SSR off
+  ssr: false,
+});
+
 const QuestionForm = () => {
-  const form = useForm({
+  const editorRef = useRef<MDXEditorMethods>(null);
+  const form = useForm<z.infer<typeof AskQuestionSchema>>({
     resolver: zodResolver(AskQuestionSchema),
     defaultValues: {
       title: "",
@@ -24,7 +35,49 @@ const QuestionForm = () => {
     },
   });
 
-  const handleCreateQuestion = async () => {};
+  const handleInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    field: { value: string[] }
+  ) => {
+    console.log(field, e);
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const tagInput = e.currentTarget.value.trim();
+
+      if (tagInput && tagInput.length < 15 && !field.value.includes(tagInput)) {
+        form.setValue("tags", [...field.value, tagInput]);
+        e.currentTarget.value = "";
+        form.clearErrors("tags");
+      } else if (tagInput.length > 15) {
+        form.setError("tags", {
+          type: "manual",
+          message: "Tag length should be less than 15 characters",
+        });
+      } else if (field.value.includes(tagInput)) {
+        form.setError("tags", {
+          type: "manual",
+          message: "Tag already added",
+        });
+      }
+    }
+  };
+
+  const handleTagRemove = (tag: string, field: { value: string[] }) => {
+    const newTags = field.value.filter((t) => t !== tag);
+
+    form.setValue("tags", newTags);
+    if (newTags.length === 0) {
+      form.setError("tags", {
+        type: "manual",
+        message: "Tags are required",
+      });
+    }
+  };
+  const handleCreateQuestion = async (
+    data: z.infer<typeof AskQuestionSchema>
+  ) => {
+    console.log(data);
+  };
   return (
     <Form {...form}>
       <form
@@ -63,7 +116,13 @@ const QuestionForm = () => {
                 Detailed explanation of your problem{" "}
                 <span className='text-primary-500'>*</span>
               </FormLabel>
-              <FormControl>Editor</FormControl>
+              <FormControl>
+                <Editor
+                  value={field.value}
+                  editorRef={editorRef}
+                  fieldChange={field.onChange}
+                />
+              </FormControl>
               <FormDescription className='body-regular text-light-500 mt-2.5'>
                 Introduce the problem and expand on what you put in the title.
               </FormDescription>
@@ -86,9 +145,23 @@ const QuestionForm = () => {
                   <Input
                     className='paragraph-regular background-light900_dark300 light-border-2 text-dark370_light700 no-focus min-h-[56px]  border'
                     placeholder='Add tags...'
-                    {...field}
+                    onKeyDown={(e) => handleInputKeyDown(e, field)}
                   />
-                  Tags
+                  {field.value.length > 0 && (
+                    <div className='flex-start mt-2.5 flex-wrap gap-2.5'>
+                      {field?.value?.map((tag) => (
+                        <TagCard
+                          key={tag}
+                          _id={tag}
+                          name={tag}
+                          compact
+                          remove
+                          isButton
+                          handleRemove={() => handleTagRemove(tag, field)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </FormControl>
               <FormDescription className='body-regular text-light-500 mt-2.5'>
