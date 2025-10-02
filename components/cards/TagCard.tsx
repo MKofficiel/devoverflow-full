@@ -5,7 +5,7 @@ import { getDeviconClassName } from "@/lib/utils";
 
 import Image from "next/image";
 
-interface Props {
+export interface Props {
   _id: string;
   name: string;
   questions?: number;
