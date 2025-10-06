@@ -11,16 +11,17 @@ const formatResponse = (
   errors?: Record<string, string[]>
 ) => {
   const responseContent = {
-    succes: false,
+    success: false,
     error: {
       message,
       details: errors,
     },
+    status,
   };
 
   return responseType === "api"
     ? NextResponse.json(responseContent, { status })
-    : { status, ...responseContent };
+    : responseContent;
 };
 
 const handleError = (error: unknown, responseType: ResponseType = "server") => {
