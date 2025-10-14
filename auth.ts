@@ -58,7 +58,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, account }) {
       if (account) {
         const { data: existingAccount, success } =
-          (await api.account.getByProvider(
+          (await api.accounts.getByProvider(
             account.type === "credentials"
               ? token.email!
               : account.providerAccountId
